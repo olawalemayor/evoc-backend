@@ -1,9 +1,6 @@
 const express = require("express");
-const path = require("path");
-const products = require("./assets/products.json");
-const categories = require("./assets/categories.json");
-const carts = require("./assets/cart.json");
 const cors = require("cors");
+const { default: axios } = require("axios");
 
 const app = express();
 app.use(express.json());
@@ -11,45 +8,89 @@ app.use(cors());
 
 app.get("/products", (req, res) => {
   const limit = req.query.limit;
-  if (limit) res.send(products.slice(0, limit));
-  else res.send(products);
+  let products;
+
+  axios
+    .get("https://fakestoreapi.com/products")
+    .then((response) => {
+      products = response.data;
+      if (!products) return res.status(500).send("Something went wron");
+
+      if (limit) return res.send(products.slice(0, limit));
+
+      return res.send(products);
+    })
+    .catch((ex) => {
+      res.status(500).send("Could not connect to FakeStore API");
+      console.log("Error: ", ex.message);
+    });
 });
 
 app.get("/products/:id", (req, res) => {
+  let product;
   const id = parseInt(req.params.id);
-  const result = products.find((product) => product.id === id);
-  if (!result) res.status(404);
-  res.send(result);
+
+  axios
+    .get(`https://fakestoreapi.com/products/${id}`)
+    .then((response) => {
+      product = response.data;
+      if (!result) return res.status(404);
+      return res.send(result);
+    })
+    .catch((ex) => {
+      res.status(500).send("Could not connect to FakeStore API");
+      console.log("Error: ", ex.message);
+    });
 });
 
 app.get("/categories", (req, res) => {
-  res.send(categories);
-});
+  let categories;
 
-app.get("/assets/:file", (req, res) => {
-  res.sendFile(path.join(__dirname, `assets/${req.params.file}`));
+  axios
+    .get("https://fakestoreapi.com/products/categories")
+    .then((response) => {
+      categories = response.data;
+      if (!categories) return res.status(404);
+      return res.send(categories);
+    })
+    .catch((ex) => {
+      res.status(500).send("Could not connect to FakeStore API");
+      console.log("Error: ", ex.message);
+    });
 });
 
 app.get("/product/category/:category", (req, res) => {
+  let products;
   const category = req.params.category;
-  res.send(products.filter((product) => product.category === category));
+
+  axios
+    .get(`https://fakestoreapi.com/products/category/${category}`)
+    .then((response) => {
+      products = response.data;
+      if (!products) return res.status(404);
+      return res.send(products);
+    })
+    .catch((ex) => {
+      res.status(500).send("Could not connect to FakeStore API");
+      console.log("Error: ", ex.message);
+    });
 });
 
 app.get("/carts/:userId", (req, res) => {
   const userId = parseInt(req.params.userId);
-  res.send(carts.find((cart) => cart.userId === userId));
-});
+  let cart;
 
-app.post("/products", (req, res) => {
-  const allProducts = [...products];
-  allProducts.push(req.body);
-});
-
-app.put("/product/:id", (req, res) => {
-  const allProducts = [...products];
-  const id = parseInt(req.params.id);
-  let product = allProducts.find((product) => product.id === id);
-  product = req.body;
+  axios
+    .get(`https://fakestoreapi.com/cart?userId=${userId}`)
+    .then((response) => {
+      cart = response.data;
+      if (!cart) return res.status(404);
+      return res.send(cart);
+    })
+    .catch((ex) => {
+      res.status(500).send("Could not connect to FakeStore API");
+      console.log("Error: ", ex.message);
+    });
 });
 
 const port = process.env.PORT || 5000;
